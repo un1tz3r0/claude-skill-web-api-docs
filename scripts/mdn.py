@@ -839,11 +839,15 @@ def _section_counts() -> list[tuple[str, int]]:
 def _print_implicit_trigger_guidance() -> int:
     """Printed when `mdn.py` is invoked bare (e.g. from a SKILL.md `!` block
     when $ARGUMENTS is empty). Tells Claude how to convert the surrounding
-    conversation into one or more `find` calls."""
-    prog = Path(__file__).resolve()
+    conversation into one or more `find` calls — re-invoked via the skill's
+    own slash command, not a hard-coded path."""
+    # Derive the slash-command name from the skill directory at runtime, so
+    # the guidance stays correct on any machine and even when the installer
+    # renames the skill via `--name OTHER`.
+    skill = SKILL_DIR.name
     counts = dict(_section_counts())
 
-    print("# web-api-docs — implicit-trigger guidance")
+    print(f"# {skill} — implicit-trigger guidance")
     print()
     print("You were activated *without* explicit arguments — most likely")
     print("because the recent conversation mentions a web-platform topic")
@@ -852,7 +856,7 @@ def _print_implicit_trigger_guidance() -> int:
     print("being edited). The skill's job in this mode is to pull MDN's")
     print("canonical docs *for that topic* into your context.")
     print()
-    print("If you got here because of an explicit `/web-api-docs <verb>")
+    print(f"If you got here because of an explicit `/{skill} <verb>")
     print("<query>` invocation, ignore this guidance — the verb's result")
     print("would have appeared here instead.")
     print()
@@ -865,20 +869,21 @@ def _print_implicit_trigger_guidance() -> int:
     print("   attributes; HTTP headers / status codes; SVG / ARIA terms.")
     print("2. For each distinct topic, form a 2-5 word query that names")
     print("   the feature (not the symptom). Prefer the canonical name.")
-    print("3. Run `find` once per topic — in parallel when there are")
-    print("   multiple — and use the returned Markdown in your reply:")
+    print(f"3. Re-invoke this skill with `find` once per topic — in")
+    print("   parallel when there are multiple — and use the returned")
+    print("   Markdown in your reply:")
     print()
-    print(f"       python3 {prog} find \"<query>\"")
+    print(f"       /{skill} find <query>")
     print()
-    print("4. If you already know the exact slug, skip `find` and go")
-    print("   straight to `get <slug>`. If `find` is unavailable")
-    print("   (offline / sandbox blocks MDN), fall back to `search`")
-    print("   (local slug-only).")
+    print("4. If you already know the exact slug, skip `find` and use")
+    print(f"   `/{skill} get <slug>` directly. If `find` is unavailable")
+    print(f"   (offline / sandbox blocks MDN), use `/{skill} search")
+    print("   <query>` for the local slug-only fallback.")
     print()
     print("## Examples of well-shaped queries")
     print()
     for q in _EXAMPLE_QUERIES:
-        print(f"    python3 {prog} find \"{q}\"")
+        print(f"    /{skill} find {q}")
     print()
     print("## Topic areas in the shipped index")
     print()

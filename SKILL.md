@@ -54,16 +54,21 @@ If the first argument isn't a known verb, all args route to `find`
 
 ## Examples (after the initial guidance/result above)
 
-```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/mdn.py find "intersection observer threshold"
-python3 ${CLAUDE_SKILL_DIR}/scripts/mdn.py find "Array.flatMap"
-python3 ${CLAUDE_SKILL_DIR}/scripts/mdn.py get "Web/CSS/:hover"
-python3 ${CLAUDE_SKILL_DIR}/scripts/mdn.py get "https://developer.mozilla.org/en-US/docs/Web/API/fetch"
-python3 ${CLAUDE_SKILL_DIR}/scripts/mdn.py browse "Web/API/Fetch_API"
+Re-invoke this skill via its slash command — do **not** call the
+underlying script directly. On this install the command is
+`/web-api-docs` (it matches the directory holding this `SKILL.md`,
+so a renamed install would use that name instead).
+
+```
+/web-api-docs find intersection observer threshold
+/web-api-docs find Array.flatMap
+/web-api-docs get Web/CSS/:hover
+/web-api-docs get https://developer.mozilla.org/en-US/docs/Web/API/fetch
+/web-api-docs browse Web/API/Fetch_API
 ```
 
-Run multiple `find` calls in parallel when the conversation touches
-multiple distinct topics — each `find` is independent and cached
+Issue multiple `find` invocations in parallel when the conversation
+touches multiple distinct topics — each is independent and cached
 separately.
 
 ## Important notes
