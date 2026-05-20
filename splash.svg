@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc" preserveAspectRatio="xMidYMid meet">
   <title id="title">web-api-docs</title>
-  <desc id="desc">MDN web-platform documentation, straight from the source — a Claude Code skill.</desc>
+  <desc id="desc">A Claude Code skill that automatically enriches contexts with relevant pages from MDN's library of web frontend development docs.</desc>
 
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -16,6 +16,10 @@
       <stop offset="0.7" stop-color="#ff7849" stop-opacity="0.02"/>
       <stop offset="1"   stop-color="#ff7849" stop-opacity="0"/>
     </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0d1117" stop-opacity="1"/>
+    </linearGradient>
     <clipPath id="termClip">
       <rect x="0" y="0" width="540" height="280" rx="10"/>
     </clipPath>
@@ -40,17 +44,17 @@
     <rect x="72" y="186" width="72" height="4" rx="2" fill="url(#accent)"/>
 
     <!-- Tagline -->
-    <text x="72" y="232" font-size="22" font-weight="500" fill="#d4dae3">MDN web-platform docs,</text>
-    <text x="72" y="262" font-size="22" font-weight="500" fill="#d4dae3">straight from the source.</text>
+    <text x="72" y="228" font-size="20" font-weight="500" fill="#d4dae3">Automatically enriches contexts with</text>
+    <text x="72" y="254" font-size="20" font-weight="500" fill="#d4dae3">relevant pages from MDN's library of</text>
+    <text x="72" y="280" font-size="20" font-weight="500" fill="#d4dae3">web frontend development docs.</text>
 
     <!-- Sub-tagline -->
     <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13" fill="#7d8a9c" letter-spacing="0.4">
-      <text x="72" y="312">no browser  ·  no scraping  ·  no API key</text>
-      <text x="72" y="334">a Claude Code skill · stdlib only</text>
+      <text x="72" y="324">a Claude Code skill</text>
     </g>
   </g>
 
-  <!-- RIGHT: terminal mockup -->
+  <!-- RIGHT: claude-code session mockup -->
   <g transform="translate(620, 60)">
     <!-- Drop-shadow approximation via offset darker rect -->
     <rect x="3" y="6" width="540" height="280" rx="10" fill="#000" opacity="0.35"/>
@@ -62,42 +66,44 @@
       <rect width="540" height="36" fill="#161b22"/>
       <!-- Title-bar bottom hairline -->
       <rect y="36" width="540" height="1" fill="#21262d"/>
+
+      <!-- Traffic lights -->
+      <circle cx="22" cy="18" r="6" fill="#ff5f56"/>
+      <circle cx="42" cy="18" r="6" fill="#ffbd2e"/>
+      <circle cx="62" cy="18" r="6" fill="#27c93f"/>
+
+      <!-- Title -->
+      <text x="270" y="23" text-anchor="middle"
+            font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+            font-size="12" fill="#7d8590">claude</text>
+
+      <!-- Content -->
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13" xml:space="preserve">
+        <!-- Prompt with slash command -->
+        <text x="24" y="74"><tspan fill="#ff7849">&gt;</tspan><tspan fill="#c9d1d9"> </tspan><tspan fill="#a5d6ff">/web-api-docs</tspan><tspan fill="#c9d1d9"> find </tspan><tspan fill="#e3b341">":hover pseudo-class"</tspan></text>
+
+        <!-- Markdown header -->
+        <text x="24" y="114" fill="#ffa657" font-weight="700">#</text>
+        <text x="44" y="114" fill="#ffa657" font-weight="700">:hover</text>
+        <text x="100" y="114" fill="#7d8590" font-size="11">— CSS pseudo-class</text>
+
+        <!-- MDN attribution line -->
+        <text x="24" y="138"><tspan fill="#7d8590">MDN: </tspan><tspan fill="#a5d6ff">developer.mozilla.org/.../Selectors/:hover</tspan></text>
+
+        <!-- Divider -->
+        <line x1="24" y1="156" x2="516" y2="156" stroke="#30363d"/>
+
+        <!-- Body -->
+        <text x="24" y="182"><tspan fill="#c9d1d9">The </tspan><tspan fill="#ffa657" font-weight="600">:hover</tspan><tspan fill="#c9d1d9"> CSS pseudo-class matches an</tspan></text>
+        <text x="24" y="204" fill="#c9d1d9">element when a user interacts with it</text>
+        <text x="24" y="226" fill="#c9d1d9">using a pointing device. The pseudo-class</text>
+        <text x="24" y="248" fill="#c9d1d9">is generally triggered when the user</text>
+      </g>
+
+      <!-- Bottom fade to suggest more content -->
+      <rect x="0" y="240" width="540" height="40" fill="url(#fade)"/>
     </g>
     <!-- Outline -->
     <rect width="540" height="280" rx="10" fill="none" stroke="#30363d" stroke-width="1"/>
-
-    <!-- Traffic lights -->
-    <circle cx="22" cy="18" r="6" fill="#ff5f56"/>
-    <circle cx="42" cy="18" r="6" fill="#ffbd2e"/>
-    <circle cx="62" cy="18" r="6" fill="#27c93f"/>
-
-    <!-- Title -->
-    <text x="270" y="23" text-anchor="middle"
-          font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-          font-size="12" fill="#7d8590">web-api-docs</text>
-
-    <!-- Content -->
-    <g font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="13" xml:space="preserve">
-      <!-- Prompt -->
-      <text x="24" y="74"><tspan fill="#7ee787">$</tspan><tspan fill="#c9d1d9"> mdn.py get </tspan><tspan fill="#a5d6ff">"Web/CSS/:hover"</tspan></text>
-
-      <!-- Header -->
-      <text x="24" y="112" fill="#ffa657" font-weight="600"># :hover CSS pseudo-class</text>
-      <text x="24" y="134"><tspan fill="#7d8590">MDN:  </tspan><tspan fill="#a5d6ff">developer.mozilla.org/.../Selectors/:hover</tspan></text>
-      <text x="24" y="154"><tspan fill="#7d8590">type: </tspan><tspan fill="#c9d1d9">css-pseudo-class</tspan></text>
-
-      <!-- Divider -->
-      <line x1="24" y1="174" x2="516" y2="174" stroke="#30363d"/>
-
-      <!-- Body -->
-      <text x="24" y="200"><tspan fill="#c9d1d9">The </tspan><tspan fill="#ffa657" font-weight="600">:hover</tspan><tspan fill="#c9d1d9"> CSS pseudo-class matches an</tspan></text>
-      <text x="24" y="222" fill="#c9d1d9">element when a user interacts with it using</text>
-      <text x="24" y="244" fill="#c9d1d9">a pointing device.</text>
-
-      <!-- Caret -->
-      <rect x="24" y="252" width="8" height="14" fill="#c9d1d9">
-        <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="1.1s" repeatCount="indefinite"/>
-      </rect>
-    </g>
   </g>
 </svg>

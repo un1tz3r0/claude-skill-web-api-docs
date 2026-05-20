@@ -9,6 +9,19 @@
   attaches the zip to the corresponding GitHub Release.
 
 ### Changed
+- **README and splash refocused on the end-user experience.** New
+  tagline: "automatically enriches contexts with relevant pages from
+  MDN's library of web frontend development docs." Dropped the
+  "straight from the source / no browser / no scraping / no API key"
+  framing and the internal-mechanism "How it works" section.
+- **Splash mockup** now shows a Claude Code session invoking the
+  `/web-api-docs` slash command, with the start of a rendered MDN
+  page below it (was: a `mdn.py` shell prompt).
+- **README usage examples** switched from `python3 scripts/mdn.py …`
+  to the `/web-api-docs …` slash-command form, which is the
+  user-facing entry point.
+
+### Changed
 - **Broadened trigger conditions.** Dropped the implicit "MDN must be
   mentioned" requirement. SKILL.md now triggers on any specific web-
   platform technology mention (CSS properties / selectors / at-rules /

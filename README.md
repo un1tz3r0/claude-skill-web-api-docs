@@ -1,41 +1,55 @@
 <p align="center">
-  <img src="splash.svg" alt="web-api-docs — MDN web-platform docs, straight from the source." width="100%">
+  <img src="splash.svg" alt="web-api-docs — a Claude Code skill that automatically enriches contexts with relevant pages from MDN's library of web frontend development docs." width="100%">
 </p>
 
 # web-api-docs
 
-A [Claude Code](https://claude.com/claude-code) skill that fetches MDN
-web-platform documentation straight from the
-[`mdn/content`](https://github.com/mdn/content) GitHub repo. No
-browser, no scraping, no API key.
+> A [Claude Code](https://claude.com/claude-code) skill that
+> **automatically enriches contexts with relevant pages from MDN's
+> library of web frontend development docs**.
 
-When a model needs the canonical reference for a JavaScript built-in, a
-Web API, a CSS property or selector, an HTTP header, an HTML element,
-or a glossary term, this skill turns the question into a single HTTP
-fetch of the raw Markdown and prints a clean text rendering with the
-MDN URL at the top.
+## What this looks like in practice
 
-## How it works
+You're editing a stylesheet and ask "why isn't my `:has()` selector
+matching here?" — or you paste a snippet using `IntersectionObserver`
+and ask Claude to fix the threshold logic — or you wonder out loud why
+your `fetch` isn't sending cookies. In each case, the skill spots the
+web-platform feature in play, pulls the canonical MDN page into the
+conversation, and Claude answers from the spec instead of from
+memory.
 
-- A **shipped slug → repo-path index** (`index/web-docs.tsv`, ~12.6k
-  entries) maps every in-scope MDN slug to its repo path with zero
-  network calls.
-- A **shipped redirect map** (`index/redirects.tsv`, ~9k entries)
-  follows moved pages, so old slugs like `Web/CSS/:hover` still
-  resolve.
-- The slug → folder encoder is a byte-for-byte mirror of
-  [yari's `slugToFolder`](https://github.com/mdn/yari/blob/main/libs/slug-utils/index.js)
-  plus the npm `sanitize-filename` rules — no drift, no silent 404s.
-- Fetched docs are cached on disk with `ETag` / `Last-Modified`
-  conditional GETs, so repeat lookups are effectively free.
-- Light **KumaScript cleanup** turns `{{Macro(arg)}}` tokens into
-  inline badges, blockquote banners, or `> _(... omitted — see MDN.)_`
-  placeholders. The original tokens are available with `--raw`.
+You don't have to remember the skill exists. It activates whenever a
+specific web feature is named (CSS properties / selectors / at-rules,
+JS built-ins, DOM / Web APIs, HTML elements / attributes, HTTP
+headers and statuses, SVG, ARIA, glossary terms) or whenever Claude
+is touching front-end source (`.html`, `.css`, `.js`, `.jsx`, `.ts`,
+`.tsx`, `.svg`, …).
 
-Scope: `files/en-us/web/**` and `files/en-us/glossary/**` — covers HTML,
-CSS, JavaScript, Web APIs, HTTP, SVG, MathML, WebAssembly,
-Accessibility, Web Extensions, and the Glossary. Python stdlib only;
-no third-party dependencies.
+## Asking for a specific page
+
+When you do want a particular page on hand, invoke the skill
+explicitly:
+
+```text
+> /web-api-docs get Web/CSS/:hover
+> /web-api-docs find IntersectionObserver
+> /web-api-docs search "cache control"
+> /web-api-docs browse Web/API/Fetch_API
+```
+
+The verbs:
+
+| Verb       | What it does |
+| ---------- | ------------ |
+| `find`     | Search MDN, return the top results' summaries. The quickest "what's at this name?" probe. |
+| `get`      | Render a specific page. Accepts a slug (`Web/CSS/:hover`), a full MDN URL, or a repo path. |
+| `search`   | List matching slugs from the shipped index without fetching content. |
+| `browse`   | Show the immediate children of a slug — useful for walking the MDN tree. |
+| `refresh`  | Rebuild the local slug index from MDN's GitHub repo. |
+
+Every rendered page leads with the canonical MDN URL, so a click
+takes you to the live page for interactive examples and
+browser-compat tables.
 
 ## Install
 
@@ -45,7 +59,7 @@ Clone the repo and run the installer. By default it **copies** the
 skill into `~/.claude/skills/web-api-docs/`.
 
 ```bash
-git clone <repo-url> web-api-docs
+git clone https://github.com/un1tz3r0/claude-skill-web-api-docs.git web-api-docs
 cd web-api-docs
 ./install.sh                  # copy into ~/.claude/skills/
 ./install.sh --symlink        # symlink instead (edits track the checkout)
@@ -68,7 +82,11 @@ Developer Mode or an elevated shell; copy mode works as-is.
 
 ### Into Claude Code on the web
 
-Build a zip and upload it via the web UI's skill upload:
+Grab the latest `web-api-docs.zip` from the
+[Releases page](https://github.com/un1tz3r0/claude-skill-web-api-docs/releases)
+and upload it via the web UI's skill upload.
+
+Or build one yourself:
 
 ```bash
 ./package-skill.sh                       # writes ./web-api-docs.zip
@@ -76,41 +94,23 @@ Build a zip and upload it via the web UI's skill upload:
 ./package-skill.sh --dry-run             # list what would be packed
 ```
 
-The archive contains `web-api-docs/` at its root with the shipped
-index, scripts, and `SKILL.md` — ready to upload. `.cache/`, `.git/`,
-`.claude/`, and `__pycache__/` are excluded. Pure stdlib (works on
-Windows without `zip` / 7-zip).
+## Scope and limits
 
-## Usage
+The skill covers everything under `web/` and `glossary/` on MDN —
+HTML, CSS, JavaScript, Web APIs, HTTP, SVG, MathML, WebAssembly,
+Accessibility, Web Extensions, and the Glossary.
 
-Once installed, Claude Code discovers the skill via `SKILL.md`. Inside
-a session, the skill exposes these commands:
+A few things it deliberately doesn't do:
 
-```bash
-# Read one doc — accepts a slug, a full MDN URL, or a repo path
-python3 scripts/mdn.py get "Web/CSS/:hover"
-python3 scripts/mdn.py get "https://developer.mozilla.org/en-US/docs/Web/API/fetch"
-python3 scripts/mdn.py get "Glossary/CORS" --json
-python3 scripts/mdn.py get "Web/JavaScript/Reference/Global_Objects/Array/map" --raw
-
-# Fuzzy-find a slug in the shipped index
-python3 scripts/mdn.py search "intersectionobserver"
-
-# List immediate children of a slug
-python3 scripts/mdn.py browse "Web/API/Fetch_API"
-```
-
-To regenerate the shipped index (rarely needed — the encoder is
-stable, and 7-day cache TTLs absorb minor MDN churn):
-
-```bash
-export GH_TOKEN="$(gh auth token)"     # avoid the 60 req/hr unauth limit
-python3 scripts/mdn.py refresh
-```
-
-See [`reference.md`](reference.md) for the slug → folder encoding
-rules, the full macro substitution table, cache layout, and
-environment variables.
+- **No live browser-compat tables or interactive examples.** Those
+  parts of the page are replaced with placeholders; follow the MDN
+  URL at the top of every response for the live versions.
+- **No full-text search.** The shipped index is slug-only, so
+  concepts not named in the slug (e.g. "flexbox" →
+  `css_flexible_box_layout`) may need a `/web-api-docs browse`
+  from a known parent.
+- **No server-runtime docs.** This is the web platform only — for
+  Node / Deno / Bun, use those projects' own references.
 
 ## Requirements
 
@@ -119,21 +119,12 @@ environment variables.
   (`GITHUB_TOKEN` / `GH_TOKEN`); `gh auth token` works.
 - For symlink installs on Windows: Developer Mode or an admin shell.
 
-## What this is not
-
-- **Not a renderer for browser-compat tables or live samples.** Those
-  macros become `> _(... omitted — see MDN.)_` placeholders; standalone
-  fenced code blocks (e.g. ``` ```css interactive-example ```) remain
-  intact. Follow the MDN URL in the header for the interactive bits.
-- **Not full-text search.** The index is slug-only — concepts not named
-  in the slug (e.g. "flexbox" → `css_flexible_box_layout`) will miss.
-  Fall back to `browse` from a known parent, or paste a known MDN URL
-  into `get`.
-- **Not server-runtime docs.** MDN covers the web platform; for Node /
-  Deno / Bun, use those projects' own docs.
-
 ## License & attribution
 
-This skill is tooling. The MDN content fetched at runtime is © Mozilla
-Contributors and licensed under
+This skill is tooling. The MDN content it fetches at runtime is
+© Mozilla Contributors and licensed under
 [CC BY-SA 2.5](https://developer.mozilla.org/en-US/docs/MDN/About#copyrights_and_licenses).
+
+For implementation details — slug → folder encoding rules, the macro
+substitution table, cache layout, environment variables — see
+[`reference.md`](reference.md).
