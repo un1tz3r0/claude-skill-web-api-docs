@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-05-20
+
+### Changed
+- **Broadened trigger conditions.** Dropped the implicit "MDN must be
+  mentioned" requirement. SKILL.md now triggers on any specific web-
+  platform technology mention (CSS properties / selectors / at-rules /
+  functions; JS built-ins; DOM/Web APIs; HTML elements/attributes;
+  HTTP headers/status codes; SVG; ARIA; glossary terms) and when the
+  user is working with front-end source files
+  (`.html`, `.css`, `.js`, `.jsx`, `.ts`, `.tsx`, `.svg`, etc.).
+  `description` and `when_to_use` expanded with concrete examples
+  per category.
+
+### Added
+- **Two-stage execution for implicit triggers.** Bare `mdn.py` (no
+  args) now prints implicit-trigger guidance instead of the argparse
+  help: it tells Claude to extract 1-3 queries from the recent
+  conversation, run `find` per query (in parallel), and use the
+  returned Markdown. Includes 20 curated example queries
+  demonstrating good query shapes and a per-section topic table built
+  live from the shipped TSV (`web/api: 7989 docs · DOM, fetch, …` etc).
+- SKILL.md restructured around a "Two-stage execution" section so the
+  model knows whether the `!`-injected block is a result (explicit
+  args) or a guidance block (implicit). The heavy guidance is only in
+  context when no args were passed — explicit slash commands stay
+  lean.
+
 ## 2026-05-19 (last)
 
 ### Added

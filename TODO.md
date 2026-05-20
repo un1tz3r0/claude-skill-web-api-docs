@@ -1,3 +1,3 @@
 # TODO — web-api-docs skill
 
-_(Empty — `find` subcommand + argument plumbing landed; see `CHANGELOG.md`.)_
+_(Empty — broader triggers + two-stage execution landed; see `CHANGELOG.md`.)_

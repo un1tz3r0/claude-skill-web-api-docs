@@ -757,6 +757,156 @@ def cmd_get(args):
 
 KNOWN_VERBS = {"find", "get", "search", "browse", "refresh"}
 
+# Order + one-line descriptions used by the implicit-trigger guidance.
+# Anything that appears in the TSV but isn't listed here is shown under a
+# generic "other" line, so this stays useful even as MDN reorganizes.
+_SECTION_DESCRIPTIONS = [
+    ("web/api",
+     "DOM, fetch, WebSocket, Canvas/WebGL, IntersectionObserver, IndexedDB, Workers, Web Audio, ..."),
+    ("web/css",
+     "properties, selectors, at-rules, functions, units, color spaces, custom properties"),
+    ("web/javascript",
+     "built-ins (Array/Promise/Map/Set/...), operators, statements, syntax, regex, modules"),
+    ("web/html",
+     "elements, attributes, global attributes, forms, microdata, popover/dialog"),
+    ("web/http",
+     "headers, methods, status codes, CORS, CSP, caching, redirects, content negotiation"),
+    ("web/svg",
+     "elements, attributes, presentation, filters, animation"),
+    ("web/accessibility",
+     "ARIA roles / states / properties, semantic HTML, WAI-ARIA patterns"),
+    ("web/mathml",
+     "MathML elements and attributes"),
+    ("web/security",
+     "CSP, mixed content, sandboxing, subresource integrity"),
+    ("web/privacy",
+     "third-party storage, tracking-prevention, fingerprinting surfaces"),
+    ("web/performance",
+     "page-load, Core Web Vitals, performance APIs"),
+    ("web/progressive_web_apps",
+     "manifest, install prompts, offline, service workers"),
+    ("web/media",
+     "container formats, codecs, autoplay rules"),
+    ("web/uri",
+     "URL scheme, syntax, fragment / authority / path"),
+    ("web/xml",
+     "XML processing, MathML/SVG embedding, namespaces"),
+    ("web/webdriver",
+     "WebDriver commands, capabilities, errors"),
+    ("glossary",
+     "web terminology — CORS, CSP, REST, ES Modules, semantic markup, hoisting, ..."),
+]
+
+# Curated, hand-picked example queries that demonstrate the *shape* of a
+# good query (2–5 words; names a concrete feature; mixes selector / method
+# / attribute / header / glossary forms).
+_EXAMPLE_QUERIES = [
+    "css grid layout",
+    "intersection observer threshold",
+    ":has() selector",
+    "@container queries",
+    "Array.flatMap",
+    "Promise.allSettled",
+    "fetch credentials cors",
+    "Cache-Control header",
+    "service worker activate event",
+    "popover attribute",
+    "dialog element",
+    "aria-label vs aria-labelledby",
+    "ResizeObserver",
+    "Content-Security-Policy nonce",
+    "css color-mix",
+    "transform-style preserve-3d",
+    "Object.fromEntries",
+    "URLSearchParams",
+    "structuredClone",
+    "AbortController signal",
+]
+
+
+def _section_counts() -> list[tuple[str, int]]:
+    """Return [(section, count)] from the shipped TSV; empty if missing."""
+    try:
+        rows = load_index()
+    except FileNotFoundError:
+        return []
+    counts: dict[str, int] = {}
+    for _repo_path, section, _slug in rows:
+        counts[section] = counts.get(section, 0) + 1
+    return list(counts.items())
+
+
+def _print_implicit_trigger_guidance() -> int:
+    """Printed when `mdn.py` is invoked bare (e.g. from a SKILL.md `!` block
+    when $ARGUMENTS is empty). Tells Claude how to convert the surrounding
+    conversation into one or more `find` calls."""
+    prog = Path(__file__).resolve()
+    counts = dict(_section_counts())
+
+    print("# web-api-docs — implicit-trigger guidance")
+    print()
+    print("You were activated *without* explicit arguments — most likely")
+    print("because the recent conversation mentions a web-platform topic")
+    print("(a CSS property, a JS built-in, a DOM/Web API, an HTML element,")
+    print("an HTTP header, an SVG/ARIA/glossary term, or front-end source")
+    print("being edited). The skill's job in this mode is to pull MDN's")
+    print("canonical docs *for that topic* into your context.")
+    print()
+    print("If you got here because of an explicit `/web-api-docs <verb>")
+    print("<query>` invocation, ignore this guidance — the verb's result")
+    print("would have appeared here instead.")
+    print()
+    print("## What to do now")
+    print()
+    print("1. Read the last 1-3 user/assistant messages and identify the")
+    print("   specific web-platform topic(s) at hand. Look for: CSS")
+    print("   properties / selectors / at-rules / functions; JS built-ins")
+    print("   / methods / syntax; DOM or Web APIs; HTML elements or")
+    print("   attributes; HTTP headers / status codes; SVG / ARIA terms.")
+    print("2. For each distinct topic, form a 2-5 word query that names")
+    print("   the feature (not the symptom). Prefer the canonical name.")
+    print("3. Run `find` once per topic — in parallel when there are")
+    print("   multiple — and use the returned Markdown in your reply:")
+    print()
+    print(f"       python3 {prog} find \"<query>\"")
+    print()
+    print("4. If you already know the exact slug, skip `find` and go")
+    print("   straight to `get <slug>`. If `find` is unavailable")
+    print("   (offline / sandbox blocks MDN), fall back to `search`")
+    print("   (local slug-only).")
+    print()
+    print("## Examples of well-shaped queries")
+    print()
+    for q in _EXAMPLE_QUERIES:
+        print(f"    python3 {prog} find \"{q}\"")
+    print()
+    print("## Topic areas in the shipped index")
+    print()
+    if counts:
+        for section, desc in _SECTION_DESCRIPTIONS:
+            n = counts.get(section)
+            if n is None:
+                continue
+            print(f"    {section:26s} ({n:>5d} docs)  {desc}")
+        listed = {s for s, _ in _SECTION_DESCRIPTIONS}
+        leftovers = sorted((s, c) for s, c in counts.items()
+                           if s not in listed and c > 0)
+        for section, n in leftovers:
+            print(f"    {section:26s} ({n:>5d} docs)")
+    else:
+        print("    (local index missing; run `refresh` to rebuild it)")
+    print()
+    print("## Skip when")
+    print()
+    print("- The user wants Node / Deno / Bun runtime docs — this covers")
+    print("  the *web platform*, not server runtimes.")
+    print("- The topic is purely framework-specific (React / Vue /")
+    print("  Angular / Svelte component APIs) and not a wrapped web")
+    print("  primitive.")
+    print("- You already have the canonical answer fresh in context.")
+    print("- The mention is too abstract to form a useful query.")
+    return 0
+
 
 def main(argv=None):
     p = argparse.ArgumentParser(
@@ -804,13 +954,13 @@ def main(argv=None):
     r = sub.add_parser("refresh", help="rebuild index/web-docs.tsv")
     r.set_defaults(func=cmd_refresh)
 
-    # Normalize argv: with no args, show help. If the first arg isn't a known
-    # verb, treat the whole input as a `find` query — so `mdn.py css grid`
-    # is equivalent to `mdn.py find css grid`.
+    # Normalize argv: bare invocation prints the implicit-trigger guidance
+    # (used by SKILL.md when $ARGUMENTS is empty). If the first arg isn't a
+    # known verb, treat the whole input as a `find` query — so `mdn.py css
+    # grid` is equivalent to `mdn.py find css grid`.
     raw = sys.argv[1:] if argv is None else list(argv)
     if not raw:
-        p.print_help(sys.stderr)
-        return 0
+        return _print_implicit_trigger_guidance()
     if raw[0] not in KNOWN_VERBS and raw[0] not in ("-h", "--help"):
         raw = ["find", *raw]
 

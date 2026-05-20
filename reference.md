@@ -18,6 +18,13 @@ If the first argument is not one of the verbs above, all arguments are
 joined and treated as a `find` query
 (`mdn.py css grid` ≡ `mdn.py find css grid`).
 
+Bare `mdn.py` (no arguments at all) prints **implicit-trigger
+guidance**: a block instructing Claude to extract one or more queries
+from the recent conversation and run `find` per query. SKILL.md uses
+this so the dynamic injection produces useful content in both the
+explicit-with-args and implicit-without-args cases — see the
+"Two-stage execution" section there.
+
 ### `find`
 ```
 mdn.py find <query...> [--limit N] [--top N] [--no-read]
