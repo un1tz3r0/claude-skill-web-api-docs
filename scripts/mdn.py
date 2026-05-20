@@ -5,13 +5,18 @@ repo (raw Markdown), with a shipped slug->path index and on-disk caching.
 
 Stdlib only. Subcommands:
 
+  find <query>                       semantic search via developer.mozilla.org
+                                     /api/v1/search; auto-reads the top hit
   get <slug | MDN-url | repo-path>   read a doc (light KumaScript cleanup)
-  search <query>                     fuzzy-find a doc in the shipped index
+  search <query>                     fuzzy-find a doc in the local index
+                                     (slug-only; offline-capable)
   browse <slug-prefix>               list immediate children of a slug
   refresh                            rebuild index/web-docs.tsv from GitHub
 
-See reference.md for the slug->folder rules, macro table, cache layout and
-environment variables.
+If the first argument is not one of the known verbs, all arguments are
+treated as a `find` query (so `mdn.py css grid layout` == `mdn.py find css
+grid layout`). See reference.md for slug rules, macro table, cache layout
+and environment variables.
 """
 
 from __future__ import annotations
@@ -38,12 +43,15 @@ REDIRECTS_RAW = "files/en-us/_redirects.txt"
 CACHE_DIR = SKILL_DIR / ".cache"
 CONTENT_CACHE = CACHE_DIR / "content"
 TREE_CACHE = CACHE_DIR / "trees"
+FIND_CACHE = CACHE_DIR / "find"
 
 REPO = "mdn/content"
 BRANCH = "main"
 RAW_BASE = f"https://raw.githubusercontent.com/{REPO}/{BRANCH}/"
 API_BASE = f"https://api.github.com/repos/{REPO}/git/trees/"
 MDN_BASE = "https://developer.mozilla.org/en-US/docs/"
+MDN_SEARCH_API = "https://developer.mozilla.org/api/v1/search"
+FIND_TTL = int(os.environ.get("MDN_FIND_TTL", str(24 * 3600)))  # 1 day
 
 # Scope: which top-level files/en-us/ areas the index covers.
 SCOPE_PREFIXES = ("files/en-us/web/", "files/en-us/glossary/")
@@ -610,6 +618,95 @@ def _refresh_redirects() -> int:
 
 
 # --------------------------------------------------------------------------- #
+# find — MDN search API (high-quality ranked retrieval, no local index)
+# --------------------------------------------------------------------------- #
+
+
+def _mdn_search(query: str, ttl: int, no_cache: bool) -> dict:
+    """Hit developer.mozilla.org/api/v1/search with a small TTL cache."""
+    FIND_CACHE.mkdir(parents=True, exist_ok=True)
+    key = hashlib.sha256(f"v1::{query}".encode()).hexdigest()
+    cached = FIND_CACHE / f"{key}.json"
+
+    if not no_cache and cached.exists():
+        age = time.time() - cached.stat().st_mtime
+        if age < ttl:
+            try:
+                return json.loads(cached.read_text())
+            except Exception:
+                pass  # fall through and refetch
+
+    import urllib.parse
+    qs = urllib.parse.urlencode({"q": query, "locale": "en-US"})
+    url = f"{MDN_SEARCH_API}?{qs}"
+    status, body, _ = _http(url)
+    if status != 200:
+        raise RuntimeError(f"HTTP {status} from MDN search API for query {query!r}")
+    data = json.loads(body)
+    cached.write_text(json.dumps(data))
+    return data
+
+
+def cmd_find(args):
+    """MDN-backed semantic search. By default also reads the top hit."""
+    data = _mdn_search(args.query, args.ttl or FIND_TTL, args.no_cache)
+    docs = data.get("documents", [])
+    if not docs:
+        print(f"no MDN search hits for: {args.query}")
+        sugg = data.get("suggestions") or []
+        if sugg:
+            print("suggestions:", ", ".join(s.get("text", "") for s in sugg[:5]),
+                  file=sys.stderr)
+        return 0
+
+    limit = max(1, args.limit)
+    candidates = docs[:limit]
+
+    print(f"# Search: {args.query!r}")
+    print(f"# {len(candidates)} of {len(docs)} hits from developer.mozilla.org/api/v1/search\n")
+    for i, d in enumerate(candidates, 1):
+        slug = d.get("slug", "")
+        title = d.get("title", "")
+        summary = (d.get("summary") or "").strip().replace("\n", " ")
+        if len(summary) > 220:
+            summary = summary[:217] + "..."
+        score = d.get("score", 0)
+        pop = d.get("popularity", 0)
+        print(f"  {i}. {slug}")
+        print(f"     {title}  [score {score:.2f} · popularity {pop:.2f}]")
+        if summary:
+            print(f"     {summary}")
+        print()
+
+    if args.no_read or args.top < 1:
+        print(f"# read one with: mdn.py get '<slug>'", file=sys.stderr)
+        return 0
+
+    # Auto-read the top N hits.
+    n = min(args.top, len(candidates))
+    for i in range(n):
+        d = candidates[i]
+        slug = d.get("slug", "")
+        if not slug:
+            continue
+        sep = "=" * 72
+        print(sep)
+        print(f"=  Top result #{i + 1}: {slug}")
+        print(sep)
+        print()
+        ga = argparse.Namespace(
+            target=slug, raw=False, no_cache=False, json=False, ttl=None,
+        )
+        try:
+            cmd_get(ga)
+        except (FileNotFoundError, RuntimeError) as e:
+            print(f"(could not fetch {slug}: {e})", file=sys.stderr)
+        if i < n - 1:
+            print()
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 # get
 # --------------------------------------------------------------------------- #
 
@@ -658,9 +755,33 @@ def cmd_get(args):
 # --------------------------------------------------------------------------- #
 
 
+KNOWN_VERBS = {"find", "get", "search", "browse", "refresh"}
+
+
 def main(argv=None):
-    p = argparse.ArgumentParser(prog="mdn.py", description=__doc__)
-    sub = p.add_subparsers(dest="cmd", required=True)
+    p = argparse.ArgumentParser(
+        prog="mdn.py", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = p.add_subparsers(dest="cmd")
+
+    f = sub.add_parser(
+        "find",
+        help="semantic search via MDN's search API; auto-reads top hit",
+    )
+    f.add_argument("query", nargs="+",
+                   help="search terms (joined with spaces)")
+    f.add_argument("--limit", type=int, default=8,
+                   help="number of candidates to list (default: 8)")
+    f.add_argument("--top", type=int, default=1,
+                   help="number of top hits to auto-read (default: 1)")
+    f.add_argument("--no-read", action="store_true",
+                   help="list candidates only; do not fetch any doc")
+    f.add_argument("--no-cache", action="store_true",
+                   help="bypass the search-result cache")
+    f.add_argument("--ttl", type=int, default=None,
+                   help="cache TTL seconds (default: 86400)")
+    f.set_defaults(func=cmd_find)
 
     g = sub.add_parser("get", help="read a doc")
     g.add_argument("target", help="MDN slug, full MDN URL, or repo path")
@@ -670,7 +791,8 @@ def main(argv=None):
     g.add_argument("--ttl", type=int, default=None, help="cache TTL seconds")
     g.set_defaults(func=cmd_get)
 
-    s = sub.add_parser("search", help="fuzzy-find a doc in the index")
+    s = sub.add_parser("search",
+                       help="local slug-only fuzzy search (offline-capable)")
     s.add_argument("query")
     s.add_argument("--limit", type=int, default=20)
     s.set_defaults(func=cmd_search)
@@ -682,7 +804,20 @@ def main(argv=None):
     r = sub.add_parser("refresh", help="rebuild index/web-docs.tsv")
     r.set_defaults(func=cmd_refresh)
 
-    args = p.parse_args(argv)
+    # Normalize argv: with no args, show help. If the first arg isn't a known
+    # verb, treat the whole input as a `find` query — so `mdn.py css grid`
+    # is equivalent to `mdn.py find css grid`.
+    raw = sys.argv[1:] if argv is None else list(argv)
+    if not raw:
+        p.print_help(sys.stderr)
+        return 0
+    if raw[0] not in KNOWN_VERBS and raw[0] not in ("-h", "--help"):
+        raw = ["find", *raw]
+
+    args = p.parse_args(raw)
+    # Normalize multi-token query to a single string.
+    if getattr(args, "cmd", None) == "find":
+        args.query = " ".join(args.query) if isinstance(args.query, list) else args.query
     try:
         return args.func(args)
     except (FileNotFoundError, ValueError, RuntimeError) as e:

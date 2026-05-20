@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-05-19 (last)
+
+### Added
+- `mdn.py find <query>` — semantic search backed by MDN's own search
+  API (`developer.mozilla.org/api/v1/search`). Returns ranked
+  candidates with `slug · title · summary` lines and by default
+  auto-reads the top hit via `get`, so one shell call yields both the
+  candidate list and the full top doc. Flags: `--no-read`, `--top N`,
+  `--limit`, `--no-cache`, `--ttl`. Responses cached at
+  `.cache/find/<sha256(query)>.json` (TTL `MDN_FIND_TTL`, default 1d).
+- Bare-invocation handling: `mdn.py` with no args prints help; if the
+  first arg is not a known verb (`find`/`get`/`search`/`browse`/
+  `refresh`), all args are routed to `find`.
+- SKILL.md frontmatter: `argument-hint: "[find|get|search|browse|
+  refresh] [query...]"` and a `!`-injection block that runs
+  `mdn.py $ARGUMENTS` so a `/web-api-docs find ...` invocation lands
+  the result directly in the model's context. Body restructured around
+  the verb table.
+
+### Rationale
+- Embeddings / local BM25 over per-doc summaries were considered and
+  rejected: torch/onnx are too heavy for the Claude-Code-web sandbox
+  and arbitrary user dirs; building summaries upfront would need ~12k
+  authed GitHub fetches. MDN already ships a high-quality search API,
+  so retrieval is outsourced and content fetch stays local.
+
 ## 2026-05-19 (later still)
 
 ### Added

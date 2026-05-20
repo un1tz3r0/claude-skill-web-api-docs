@@ -8,10 +8,32 @@ shipped redirect map, and on-disk caching. Stdlib only.
 
 | Command | Purpose |
 |---|---|
+| `find <query>` | Semantic search via `developer.mozilla.org/api/v1/search`; auto-reads the top hit. |
 | `get <slug \| URL \| repo-path>` | Read one doc (light KumaScript cleanup). |
-| `search <query>` | Fuzzy-find a doc in the shipped index (slug-only). |
+| `search <query>` | Fuzzy-find a doc in the shipped local index (slug-only; offline-capable). |
 | `browse <slug-prefix>` | List immediate children of a slug. |
 | `refresh` | Rebuild `index/web-docs.tsv` and `index/redirects.tsv` from GitHub. |
+
+If the first argument is not one of the verbs above, all arguments are
+joined and treated as a `find` query
+(`mdn.py css grid` ≡ `mdn.py find css grid`).
+
+### `find`
+```
+mdn.py find <query...> [--limit N] [--top N] [--no-read]
+                       [--no-cache] [--ttl SECONDS]
+```
+Calls MDN's own search API and prints ranked candidates as
+`slug · title · summary` lines. By default also fetches the top hit
+via `get` and prints its full Markdown — one shell call, no further
+turns. `--no-read` skips the auto-fetch; `--top N` reads the top N
+instead of just the first. Responses are cached at
+`.cache/find/<sha256(query)>.json` with TTL `MDN_FIND_TTL` (default 1
+day).
+
+`find` may return slugs outside the shipped index scope (e.g. `Learn`
+docs). `get` still works on those — the index only constrains local
+`search` / `browse`, not `get`.
 
 ### `get`
 ```
