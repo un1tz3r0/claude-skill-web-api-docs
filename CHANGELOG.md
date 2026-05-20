@@ -2,6 +2,12 @@
 
 ## 2026-05-20
 
+### Added
+- **GitHub Actions packaging workflow** (`.github/workflows/package-skill.yml`).
+  Runs `package-skill.sh` on every push / PR / manual dispatch and uploads
+  `web-api-docs.zip` as a workflow artifact. On `v*` tag pushes, also
+  attaches the zip to the corresponding GitHub Release.
+
 ### Changed
 - **Broadened trigger conditions.** Dropped the implicit "MDN must be
   mentioned" requirement. SKILL.md now triggers on any specific web-

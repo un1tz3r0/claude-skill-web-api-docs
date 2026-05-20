@@ -5,3 +5,6 @@ __pycache__/
 
 # Per-user Claude Code permissions; not part of the published skill.
 .claude/settings.local.json
+
+# Local build output of package-skill.sh; published via CI release artifacts.
+web-api-docs.zip
