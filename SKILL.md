@@ -1,40 +1,12 @@
 ---
 name: web-api-docs
-description: Canonical web-platform reference — HTML, CSS, JavaScript, DOM and Web APIs, HTTP, SVG, MathML, ARIA, WebAssembly, and the web glossary — fetched on demand from `mdn/content`. Auto-activates whenever the user or assistant names a specific web technology (a CSS property/selector/at-rule, a JS built-in or method, a DOM/Web API, an HTML element/attribute, an HTTP header/status, an SVG element, an ARIA role, a web glossary term) or works with front-end source (HTML, CSS, JS, JSX, TS, TSX, SVG, etc.). Also takes an explicit `[verb] [query]` argument for one-shot lookups (e.g. `/web-api-docs find css grid layout`). No browser, no scraping, no API key.
+description: Canonical web-platform reference — HTML, CSS, JavaScript, DOM/Web APIs, HTTP, SVG, MathML, ARIA, WebAssembly, glossary — fetched from github.com/mdn/content. Auto-activates whenever a specific web feature is named — CSS properties/selectors/at-rules (:has, ::before, @container, color-mix, ...); JS built-ins (Array.flatMap, Promise.allSettled, structuredClone, ...); DOM/Web APIs (fetch, IntersectionObserver, ResizeObserver, IndexedDB, WebSocket, Service Worker, ...); HTML elements/attributes (dialog, details, popover, inert, ...); HTTP headers/status (Cache-Control, CSP, CORS, ...); SVG/ARIA/glossary terms — or when editing front-end source (.html/.css/.js/.jsx/.ts/.tsx/.svg/...). Explicit usage — `/web-api-docs [find|get|search|browse|refresh] [query...]`. No browser, no scraping, no API key.
 when_to_use: |
-  Trigger on any of these — explicit "MDN" mention is **not** required:
-    - Specific CSS terms: properties (display, grid-template-areas,
-      content-visibility, color-scheme, …); selectors (:hover, :has,
-      :is, :where, ::before, ::backdrop, ::part, …); at-rules
-      (@container, @layer, @media, @supports, @keyframes); functions
-      (calc, clamp, min/max, var, color-mix, oklch, light-dark, …);
-      units / color spaces / custom properties / cascade layers.
-    - Specific JS built-ins / syntax: Array/Promise/Map/Set/Object/
-      String/RegExp methods (Array.flatMap, Promise.allSettled,
-      Object.fromEntries, structuredClone, …); operators (??, ?.,
-      ?.()), control flow, async/await, generators, modules, regex
-      features.
-    - DOM / Web APIs: fetch, AbortController, IntersectionObserver,
-      ResizeObserver, MutationObserver, WebSocket, EventSource,
-      IndexedDB, Cache, Service Workers, Web Workers, Canvas / WebGL,
-      Web Audio, WebRTC, File System Access, Streams, …
-    - HTML: elements (dialog, details, picture, slot, …), global
-      attributes (popover, inert, contenteditable, …), forms,
-      microdata, the HTML parsing algorithm.
-    - HTTP: headers (Cache-Control, Content-Security-Policy, CORS-*,
-      Vary, Set-Cookie, …), methods, status codes, redirects,
-      caching, conditional requests, content negotiation.
-    - SVG / MathML elements and attributes.
-    - Accessibility: ARIA roles / states / properties; semantic HTML;
-      WCAG concepts; WAI-ARIA authoring practices.
-    - Web glossary terms: CORS, CSP, REST, ES Modules, hoisting,
-      semantic markup, hydration, polyfill, transpiler, …
-    - The user is editing or asking about front-end source files:
-      `.html`, `.htm`, `.css`, `.scss`, `.sass`, `.less`, `.js`,
-      `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.svg`, `.xml`.
-    - Questions of the shape: "how does X work in the browser?",
-      "what's the cross-browser way to …?", "is X standard?",
-      "what's the difference between X and Y on the web platform?"
+  Trigger on any specific web-platform feature name in conversation;
+  no "MDN" mention required. When invoked without args, the skill
+  prints implicit-trigger guidance — follow it to extract 1-3
+  queries from the recent conversation and run `find` per topic
+  (in parallel for distinct topics).
 
   Skip when:
     - The user explicitly wants Node / Deno / Bun runtime docs.
@@ -42,7 +14,7 @@ when_to_use: |
       Svelte component APIs) and not a wrapped web primitive.
     - Live browser-compat data is required — `Compat` tables are
       stripped; link to MDN instead.
-    - Live samples / interactive examples are needed (also stripped).
+    - Live interactive samples are needed (also stripped).
 argument-hint: "[find|get|search|browse|refresh] [query...]"
 allowed-tools: Bash(bash *) Bash(python3 *mdn.py *) Bash(python3 *mdn.py) Bash(./setup.sh) Bash(test *) Bash(ls *) Bash(cat *)
 ---
