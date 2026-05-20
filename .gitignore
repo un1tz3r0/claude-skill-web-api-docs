@@ -1,0 +1,7 @@
+.cache/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Per-user Claude Code permissions; not part of the published skill.
+.claude/settings.local.json
